@@ -584,6 +584,7 @@ function hmrAccept(bundle /*: ParcelRequire */ , id /*: string */ ) {
 }
 
 },{}],"igcvL":[function(require,module,exports) {
+"use strict";
 // Initialize videoWatched object from localStorage
 let videoWatched = JSON.parse(localStorage.getItem("videoWatched")) || {};
 let totalVideos = new Set(); // Use a Set to store unique video IDs
@@ -604,8 +605,16 @@ function checkAllVideosWatched() {
     let watchedVideos = Object.values(videoWatched).filter(Boolean).length;
     // Check if all videos in the list have been watched
     if (totalVideos.size === watchedVideos && Object.keys(videoWatched).length > 0) // Enable quiz button when all videos are watched
-    $(".video-quiz-rich-text-button-wrap #quiz-button").removeClass("disabled");
+    enableQuizButton();
     else // If not all videos are watched, ensure the button is disabled
+    disableQuizButton();
+}
+// Function to enable the quiz button
+function enableQuizButton() {
+    $(".video-quiz-rich-text-button-wrap #quiz-button").removeClass("disabled");
+}
+// Function to disable the quiz button
+function disableQuizButton() {
     $(".video-quiz-rich-text-button-wrap #quiz-button").addClass("disabled");
 }
 // Load jQuery asynchronously
@@ -626,6 +635,8 @@ window.onYouTubeIframeAPIReady = function() {
 };
 // Function to initialize YouTube players
 function initializeYouTubePlayers() {
+    let playerCount = $("iframe[data-youtube-id]").length;
+    let playersInitialized = 0;
     // Initialize YouTube players for each video
     $("iframe[data-youtube-id]").each(function() {
         let videoId = $(this).data("youtube-id");
@@ -639,6 +650,9 @@ function initializeYouTubePlayers() {
                 events: {
                     onReady: (event)=>{
                         totalVideos.add(videoId); // Add video ID to the totalVideos Set
+                        playersInitialized++;
+                        if (playersInitialized === playerCount) // Check if all players have been initialized
+                        checkAllVideosWatched();
                     },
                     onStateChange: (event)=>{
                         if (event.data === YT.PlayerState.ENDED) // Call markVideoAsWatched when the video ends
@@ -651,8 +665,6 @@ function initializeYouTubePlayers() {
         }
         else console.error("Video ID not found for element:", this);
     });
-    // Check if all videos have been watched after initializing players
-    checkAllVideosWatched();
 }
 
 },{}]},["hPIHA","igcvL"], "igcvL", "parcelRequire4180")
