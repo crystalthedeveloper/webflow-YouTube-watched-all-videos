@@ -1,0 +1,15 @@
+{
+  "name": "webflow-youtube-watched-all-videos",
+  "version": "1.0.0",
+  "description": "This JavaScript code manages the state of watched YouTube videos on a webpage and enables a quiz button once all videos have been watched. It utilizes localStorage to remember watched videos across sessions, dynamically loads jQuery and the YouTube API, and initializes YouTube players for embedded videos. The script ensures that the quiz button is only enabled after all required videos have been watched.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel app.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "parcel": "^2.12.0"
+  }
+}
