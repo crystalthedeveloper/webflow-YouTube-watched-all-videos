@@ -1,16 +1,23 @@
 "use strict";
 
-// Initialize videoWatched object from localStorage
-let videoWatched = JSON.parse(localStorage.getItem('videoWatched')) || {};
-let totalVideos = new Set(); // Use a Set to store unique video IDs
+// Generate a unique key for each page based on the URL
+const pageKey = window.location.pathname; // Use the page path as a unique identifier
+
+// Initialize videoWatched object for each page from localStorage using a unique key
+let videoWatched = JSON.parse(localStorage.getItem(`videoWatched_${pageKey}`)) || {};
+
+let totalVideos = new Set(); // Reset Set to store unique video IDs per page
 
 // Function to mark a video as watched when it ends
 function markVideoAsWatched(videoId) {
-    if (videoWatched[videoId]) return; // If already watched, exit the function
+    if (videoWatched[videoId]) {
+        return; // If already watched, exit the function
+    }
 
     videoWatched[videoId] = true;
     try {
-        localStorage.setItem('videoWatched', JSON.stringify(videoWatched)); // Update localStorage
+        // Store the watched videos with a unique key for each page
+        localStorage.setItem(`videoWatched_${pageKey}`, JSON.stringify(videoWatched));
         checkAllVideosWatched(); // Check if all videos have been watched after marking the video as watched
     } catch (error) {
         console.error('Error updating localStorage:', error);
@@ -18,31 +25,51 @@ function markVideoAsWatched(videoId) {
     }
 }
 
+// Function to unhide elements when video is complete
+function unhideVideoComplete(videoId) {
+    // Find the iframe that contains the video in the src URL
+    let iframe = $(`iframe[src*='${videoId}']`);
+
+    if (iframe.length > 0) {
+        let chapter = iframe.attr('id'); // Get the id attribute of the iframe (chapter name)
+        
+        switch (chapter) {
+            case 'Chapter 1':
+                $('.video_complete_1').removeClass('hidden');
+                $('.watched_link1').click(() => $('[data-w-tab="Tab 1"]').click());
+                break;
+            case 'Chapter 2':
+                $('.video_complete_2').removeClass('hidden');
+                $('.watched_link2').click(() => $('[data-w-tab="Tab 2"]').click());
+                break;
+            case 'Chapter 3':
+                $('.video_complete_3').removeClass('hidden');
+                break;
+        }
+    }
+}
+
 // Function to check if all videos have been watched
 function checkAllVideosWatched() {
     let watchedVideos = Object.values(videoWatched).filter(Boolean).length;
 
-    // Check if all videos in the list have been watched
     if (totalVideos.size === watchedVideos && Object.keys(videoWatched).length > 0) {
-        // Enable quiz button when all videos are watched
         enableQuizButton();
     } else {
-        // If not all videos are watched, ensure the button is disabled
         disableQuizButton();
     }
 }
 
-// Function to enable the quiz button
+// Function to enable/disable the quiz button
 function enableQuizButton() {
     $('.video-quiz-rich-text-button-wrap #quiz-button').removeClass('disabled');
 }
 
-// Function to disable the quiz button
 function disableQuizButton() {
     $('.video-quiz-rich-text-button-wrap #quiz-button').addClass('disabled');
 }
 
-// Load jQuery asynchronously
+// Load external scripts
 function loadScript(src, callback) {
     let script = document.createElement('script');
     script.src = src;
@@ -52,13 +79,12 @@ function loadScript(src, callback) {
 }
 
 loadScript('https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js', () => {
-    // Load the YouTube API script dynamically
-    loadScript('https://www.youtube.com/iframe_api', () => {});
+    loadScript('https://www.youtube.com/iframe_api');
 });
 
-// Function called when the YouTube API is ready
+// YouTube API ready callback
 window.onYouTubeIframeAPIReady = function () {
-    initializeYouTubePlayers(); // Initialize YouTube players
+    initializeYouTubePlayers();
 };
 
 // Function to initialize YouTube players
@@ -66,30 +92,26 @@ function initializeYouTubePlayers() {
     let playerCount = $('iframe[data-youtube-id]').length;
     let playersInitialized = 0;
 
-    // Initialize YouTube players for each video
     $('iframe[data-youtube-id]').each(function () {
         let videoId = $(this).data('youtube-id');
         if (videoId) {
             try {
                 new YT.Player($(this).parent().attr('id'), {
                     videoId: videoId,
-                    origin: window.location.origin, // Ensure the origin matches the current page origin
-                    playerVars: {
-                        'allow': 'autoplay; fullscreen; picture-in-picture',
-                    },
+                    origin: window.location.origin,
+                    playerVars: { 'allow': 'autoplay; fullscreen; picture-in-picture' },
                     events: {
                         onReady: (event) => {
-                            totalVideos.add(videoId); // Add video ID to the totalVideos Set
+                            totalVideos.add(videoId); // Add the video to the totalVideos set
                             playersInitialized++;
                             if (playersInitialized === playerCount) {
-                                // Check if all players have been initialized
-                                checkAllVideosWatched();
+                                checkAllVideosWatched(); // Check if all players are initialized
                             }
                         },
                         onStateChange: (event) => {
                             if (event.data === YT.PlayerState.ENDED) {
-                                // Call markVideoAsWatched when the video ends
                                 markVideoAsWatched(videoId);
+                                unhideVideoComplete(videoId);
                             }
                         }
                     }
@@ -97,8 +119,6 @@ function initializeYouTubePlayers() {
             } catch (error) {
                 console.error('Error creating YouTube player:', error);
             }
-        } else {
-            console.error("Video ID not found for element:", this);
         }
     });
 }
