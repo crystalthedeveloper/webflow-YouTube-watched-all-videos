@@ -26,25 +26,41 @@ function markVideoAsWatched(videoId) {
 }
 
 // Function to unhide elements when video is complete
-function unhideVideoComplete(videoId) {
+function unhideVideoComplete(videoId, isGuestVideo) {
     // Find the iframe that contains the video in the src URL
     let iframe = $(`iframe[src*='${videoId}']`);
 
     if (iframe.length > 0) {
         let chapter = iframe.attr('id'); // Get the id attribute of the iframe (chapter name)
-        
-        switch (chapter) {
-            case 'Chapter 1':
-                $('.video_complete_1').removeClass('hidden');
-                $('.watched_link1').click(() => $('[data-w-tab="Tab 1"]').click());
-                break;
-            case 'Chapter 2':
-                $('.video_complete_2').removeClass('hidden');
-                $('.watched_link2').click(() => $('[data-w-tab="Tab 2"]').click());
-                break;
-            case 'Chapter 3':
-                $('.video_complete_3').removeClass('hidden');
-                break;
+
+        if (isGuestVideo) {
+            // Unhide elements for guest videos
+            switch (chapter) {
+                case 'Chapter 1':
+                    $('.guest_complete_1').removeClass('hidden');
+                    break;
+                case 'Chapter 2':
+                    $('.guest_complete_2').removeClass('hidden');
+                    break;
+                case 'Chapter 3':
+                    $('.guest_complete_3').removeClass('hidden');
+                    break;
+            }
+        } else {
+            // Unhide elements for user videos
+            switch (chapter) {
+                case 'Chapter 1':
+                    $('.video_complete_1').removeClass('hidden');
+                    $('.watched_link1').click(() => $('[data-w-tab="Tab 1"]').click());
+                    break;
+                case 'Chapter 2':
+                    $('.video_complete_2').removeClass('hidden');
+                    $('.watched_link2').click(() => $('[data-w-tab="Tab 2"]').click());
+                    break;
+                case 'Chapter 3':
+                    $('.video_complete_3').removeClass('hidden');
+                    break;
+            }
         }
     }
 }
@@ -67,6 +83,14 @@ function enableQuizButton() {
 
 function disableQuizButton() {
     $('.video-quiz-rich-text-button-wrap #quiz-button').addClass('disabled');
+}
+
+// Function to handle video end events
+function handleVideoEnd(videoId, isUserVideo) {
+    if (isUserVideo) {
+        markVideoAsWatched(videoId); // Track the video as watched for logged-in users
+    }
+    unhideVideoComplete(videoId, !isUserVideo); // Pass whether it's a guest video or not
 }
 
 // Load external scripts
@@ -94,6 +118,8 @@ function initializeYouTubePlayers() {
 
     $('iframe[data-youtube-id]').each(function () {
         let videoId = $(this).data('youtube-id');
+        let isUserVideo = $(this).closest('.uservideo').length > 0; // Check if the video is a user video
+
         if (videoId) {
             try {
                 new YT.Player($(this).parent().attr('id'), {
@@ -110,8 +136,7 @@ function initializeYouTubePlayers() {
                         },
                         onStateChange: (event) => {
                             if (event.data === YT.PlayerState.ENDED) {
-                                markVideoAsWatched(videoId);
-                                unhideVideoComplete(videoId);
+                                handleVideoEnd(videoId, isUserVideo);
                             }
                         }
                     }
